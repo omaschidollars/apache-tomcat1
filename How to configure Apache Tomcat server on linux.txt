@@ -1,0 +1,203 @@
+   HOW TO INSTALL APACHE TOMCAT ON EC2 LINUX                  
+ PREREQUISITES
+ 1. EC2 instance with java 1.8*
+
+1.  Sudo su -   OR  sudo -i
+    # Install Java and set path
+
+2. yum install java 1.8*
+   java -version   or javac -version
+   
+
+3. INSTALL APACHE TOMCAT BY DOWNLOADING TOMCATPACKAGES
+
+  # Download Tomcatpackage from https://tomcat.apache.org/download-80.cgi [OR type (tomcat 8 download)]
+  # This will give you the different versions and you should choose tar.gz 
+  # It is linux server so we will go with the tar.gz
+  #  BEFORE DOWNLOADING SWITCH TO ROOT /opt directory
+  # you can download it directly into your EC2 cli with wget and the url 
+  # if wget is not already installed, you can install it by yum wget install -y before continueing
+  # After that untar and unzip it with the below command tar -zvxf apache-tomcat-8.5.60.tar.gz
+
+
+   cd /opt
+    ls
+   wget https://downloads.apache.org/tomcat/tomcat-8/v8.5.60/bin/apache-tomcat-8.5.60.tar.gz
+   tar -zvxf apache-tomcat-8.5.60.tar.gz
+
+  
+ 4. # change directory to the apache-tomcat-8.5.60 (this is where apache is stored)
+
+     ls
+    cd apache-tomcat-8.5.60
+     ls 
+
+    # comand will show you the sub directories under  apache-tomcat-8.5.60
+
+ 5. # cd to bin and type ls to set your startup and shutdown services with startup.sh or shutdown.sh
+
+    cd bin
+     ls
+   ps -ef | grep tomcat        ( this will show if tomcat is running)
+   ls -ltr            (this will show you all the permitions to the files both startup and shutdown)
+  
+6.   # GIVE EXECUTING PERMISSIONS TO THE startup.sh and shutdown.sh FILES
+
+    chmod +x startup.sh (CHANGE THE PERMISSION and This will allow everyone to be able to startup tomcat or execute the script)
+    chmod +x shutdown.sh(CHANGE THE PERMISSION and This will allow everyone to be able to shutdown tomcat or execute the script)
+   
+  # if you want to start your tomcat you have to go to this location /opt/apache-tomcat-8.5.60/bin
+  #  and after that you can execute with ./startup.sh ( this is going to start your service)
+  
+      pwd
+
+  #  /opt/apache-tomcat-8.5.60/bin
+  #  ./startup.sh
+
+  # But instaed of that one, you can create a softlink with the path which is available. Before creating the softlink,
+  # To know the path, type echo $PATH and it will show you /usr/local/sbin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin.
+
+      echo $PATH
+
+  #  /usr/local/sbin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin
+
+
+6B.  #  CREATE SOFTLINK FILES FOR TOMCAT startup.sh and shutdown.sh
+
+      ln -s /opt/apache-tomcat-8.5.60/bin/startup.sh /usr/local/sbin/tomcatup        (ln = link file)
+      ln -s /opt/apache-tomcat-8.5.60/bin/shutdown.sh /usr/local/sbin/tomcatdown
+   ps -ef | grep tomcat (this will show you if tomcat is in start mode)
+
+
+ 7. ACCESS TOMCAT APPLICATION FROM BROWSER ON PORT 8080
+
+  # IT IS GOING TO BE RUNNING ON THE DEFAULT PORT 8080
+  # YOU CAN COPY THE PUBLIC IP AND PORT 8080 ( IP:8080) AND CHECK IF TOMCAT IS RUNNING ON YOUR BROWSER
+  # YOU SHOULD CHANGE THE DEFAULT PORT IF JENKINS IS RUNNING ON THESAME SERVER  AND USING IT/ so type the following to change
+
+   ls
+   cd ..
+   ls
+8. cd conf
+  ls
+  vi server.xml
+
+9. # CHANGE THE CONNECTOR PORT FROM 8080 TO 8090 BECAUSE IN A SINGLE ENVIRONMENT IT IS NOT GOOD TO USE 1 PORT FOR TWO APPLICATIONS
+   # change this <Connector port="8080" protocol="HTTP/1.1" to
+
+  <Connector port="8090" protocol="HTTP/1.1"
+  
+  # After that shutdown your system with the command tomcatdown and start it with tomcatup
+  
+  tomcatdown
+  ps -ef | grep tomcat
+  tomcatup
+
+10. # YOU CAN NOW ACCESS YOUR TOMCAT ON THE URL WITH THE IP ADDRESS:8090 (IP ADDRESS AND PORT 8090) 
+   # REMEMBER TO OPEN PORT 8090 ON YOUR SECURITY GROUP
+   # IF YOU CLICK Manager App it will show you 403 Access Denied because you are running it outside your machine
+   # By default the Manager is only accessible from a browser running on the same machine as Tomcat. If you wish to modify this 
+   #restriction, you'll need to edit the Manager's context.xml file and comment out the default IP address.By typing the below command:
+
+11. find / -name context.xml
+
+    # It will show you three paths, choose the one with webapps/host-manager
+    # /opt/apache-tomcat-8.5.60/webapps/host-manager/META-INF/context.xml and edit it.
+
+   vi /opt/apache-tomcat-8.5.60/webapps/host-manager/META-INF/context.xml
+
+    # look for this valve file and comment it out <Valve className="org.apache.catalina.valves.RemoteAddrValve" 
+                                           allow="127\.\d+\.\d+\.\d+|::1|0:0:0:0:0:0:0:1" /> 
+
+
+    <!--  <Valve className="org.apache.catalina.valves.RemoteAddrValve"
+        allow="127\.\d+\.\d+\.\d+|::1|0:0:0:0:0:0:0:1" /> -->
+
+  # Do the samething to the  /opt/apache-tomcat-8.5.60/webapps/manager/META-INF/context.xml
+
+   vi /opt/apache-tomcat-8.5.60/webapps/manager/META-INF/context.xml 
+
+   # look for this valve file and comment it out <Valve className="org.apache.catalina.valves.RemoteAddrValve"
+                                             allow="127\.\d+\.\d+\.\d+|::1|0:0:0:0:0:0:0:1" />
+
+    <!-- <Valve className="org.apache.catalina.valves.RemoteAddrValve"
+     allow="127\.\d+\.\d+\.\d+|::1|0:0:0:0:0:0:0:1" /> -->
+
+  # After this shutdown the service and startup the service
+   
+   tomcatdown
+   tomcatup
+
+12.# go back and click Manager App, it will ask for username and password
+   # we dont have user, so go back to the tomcat server cli and type ls
+
+  ls
+  vi  tomcat-users.xml
+
+  # create your roles, users and passwords just before the default commented roles and users, in the same format, 
+  # make sure it is not commented out ( <!--       -->)
+
+  <role rolename="manager-gui"/>
+  <role rolename="manager-status"/>
+  <role rolename="manager-script"/>
+  <role rolename="manager-jmx"/>
+  <user username="admin" password="admin" roles="manager-gui, manager-status, manager-script, manager-jmx"/>
+  <user username="deployer" password="deployer" roles="manager-script"/>
+  <user username="tomcat" password="happy777" roles="manager-gui"/>
+  :qw!
+  tomcatdown
+  tomcatup
+  # you can now log into the Tomcat GUI with your username and password that you created.
+
+
+
+
+
+
+
+
+
+
+
+
+cd /opt
+ls
+cd apache-tomcat-8.5.60
+ls
+cd bin
+ls
+cd conf
+ls
+vi server.xml
+
+change this <Connector port="8080" protocol="HTTP/1.1" to <Connector port="8090" protocol="HTTP/1.1"
+After that shutdown your system with the command tomcatdown and start it with tomcatup
+ tomcatdown
+ ps -ef | grep tomcat
+ tomcatup
+ find / -name context.xml
+ vi /opt/apache-tomcat-8.5.60/webapps/host-manager/META-INF/context.xml
+ vi /opt/apache-tomcat-8.5.60/webapps/manager/META-INF/context.xml 
+tomcatdown
+tomcatup
+go back and click Manager App, it will ask for username and password
+go back to the tomcat server cli and type ls
+ls
+vi  tomcat-users.xml
+create your roles, users and passwords just before the default commented roles and users, in the same format.
+
+<role rolename="manager-gui"/>
+  <role rolename="manager-status"/>
+  <role rolename="manager-script"/>
+  <role rolename="manager-jmx"/>
+  <user username="admin" password="admin" roles="manager-gui, manager-status, manager-script, manager-jmx"/>
+  <user username="deployer" password="deployer" roles="manager-script"/>
+  <user username="tomcat" password="happy777" roles="manager-gui"/>
+:qw!
+ tomcatdown
+ tomcatup
+
+
+
+
+
